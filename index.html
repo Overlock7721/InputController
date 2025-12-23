@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>input Controller</title>
+    <style>
+        #testArea {
+            width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            position: relative;
+        }
+        
+        .square {
+            width: 60px;
+            height: 60px;
+            position: absolute;
+            cursor: pointer;
+        }
+        
+        #square1 {
+            background-color: #3498db;
+            left: 50px;
+            top: 50px;
+        }
+        
+        #square2 {
+            background-color: #e74c3c;
+            left: 200px;
+            top: 50px;
+        }
+        
+        #square3 {
+            background-color: #ffe926;
+            left: 350px;
+            top: 50px;
+        }
+        
+        #square4 {
+            background-color: #08ca08;
+            left: 500px;
+            top: 50px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: 2px solid #ccc;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:active {
+            background: #eee;
+        }
+        
+        #status {
+            text-align: center;
+            margin: 20px;
+            padding: 15px;
+            background: white;
+        }
+        
+        .action-control {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        select {
+            padding: 8px;
+            margin-right: 10px;
+            border: 2px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="status">
+        <div id="statusText"></div>
+    </div>
+
+    <div id="testArea">
+        <div class="square" id="square1"></div>
+        <div class="square" id="square2"></div>
+        <div class="square" id="square3"></div>
+        <div class="square" id="square4"></div>
+    </div>
+
+    <div class="controls">
+        <button id="attachBtn1">Выбрать синий квадрат</button>
+        <button id="attachBtn2">Выбрать красный квадрат</button>
+        <button id="attachBtn3">Выбрать жёлтый квадрат</button>
+        <button id="attachBtn4">Выбрать зелёный квадрат</button>
+        <button id="detachBtn">Открепить</button>
+        <button id="enableBtn">Включить контроллер</button>
+        <button id="disableBtn">Выключить контроллер</button>
+        <button id="addJumpBtn">Добавить прыжок (пробел)</button>
+    </div>
+
+    <div class="action-control">
+        <select id="actionSelect"></select>
+        <button id="toggleBtn">Включить/выключить действие</button>
+    </div>
+
+    <script src="input-controller.js"></script>
+    <script src="input-controller-test.js"></script>
+</body>
+
+</html>
