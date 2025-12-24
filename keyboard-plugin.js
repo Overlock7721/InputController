@@ -25,6 +25,10 @@
             this.keysPressed.clear();
         }
 
+        bindActions(actionsToBind) {
+
+        }
+
         handleKeyDown(event) {
             if (!this.controller.enabled || !this.controller.focused || !this.controller) return;
 

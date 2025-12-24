@@ -76,6 +76,12 @@
                         enabled: actionsToBind[actionName].enabled == true
                     };
                 }
+
+                for (let plugin of this.plugins) {
+                    if (typeof plugin.bindActions === 'function') {
+                        plugin.bindActions(actionsToBind);
+                    };
+                }
             }
         }
 
@@ -118,7 +124,7 @@
 
             for (let plugin of this.plugins) {
                 if (typeof plugin.attach === 'function') {
-                    plugin.attach(this);
+                    plugin.attach(target);
                 };
             }
         }
@@ -135,7 +141,7 @@
 
             for (let plugin of this.plugins) {
                 if (typeof plugin.detach === 'function') {
-                    plugin.detach(this);
+                    plugin.detach();
                 };
             }
         }
