@@ -7,7 +7,6 @@
             this.ACTION_DEACTIVATED = "input-controller:action-deactivated";
 
             this.actions = {};
-            this.keysPressed = new Set();
             this.activeActions = new Set();
             this.target = null;
             this.plugins = [];
@@ -25,7 +24,6 @@
             });
             window.addEventListener('blur', () => {
                 this.focused = false;
-                this.keysPressed.clear();
                 this.deactivateAllActions();
             });
         }
@@ -34,14 +32,19 @@
             this.plugins.push(plugin);
             if (typeof plugin.init === 'function') {
                 plugin.init(this);
-            };
+            }
+            for (let actionName in this.actions) {
+                if (typeof plugin.bindAction === 'function') {
+                    plugin.bindAction(actionName, this.actions[actionName]);
+                }
+            }
             return this;
         }
 
         setActionActive(actionName, active) {
             if (!this.actions[actionName] || !this.actions[actionName].enabled) return;
 
-            const wasActive = this.activeActions.has[actionName];
+            const wasActive = this.activeActions.has(actionName);
 
             if (active && !wasActive) {
                 this.activeActions.add(actionName);
@@ -70,11 +73,6 @@
                     if (actionsToBind[actionName].enabled !== undefined) {
                         existingAction.enabled = actionsToBind[actionName].enabled;
                     }
-
-                    if (actionsToBind[actionName].params) {
-                        existingAction.params = actionsToBind[actionName].params;
-                    }
-
                 } else {
                     this.actions[actionName] = {
                         keys: actionsToBind[actionName].keys || [],
@@ -84,9 +82,9 @@
                 }
 
                 for (let plugin of this.plugins) {
-                    if (typeof plugin.bindActions === 'function') {
-                        plugin.bindActions(actionName, this.actions[actionName]);
-                    };
+                    if (typeof plugin.bindAction === 'function') {
+                        plugin.bindAction(actionName, this.actions[actionName]);
+                    }
                 }
             }
         }
@@ -94,6 +92,11 @@
         enableAction(actionName) {
             if (this.actions[actionName]) {
                 this.actions[actionName].enabled = true;
+                for (let plugin of this.plugins) {
+                    if (typeof plugin.onActionEnabled === 'function') {
+                        plugin.onActionEnabled(actionName);
+                    }
+                }
             }
         }
 
@@ -109,6 +112,11 @@
                         this.target.dispatchEvent(event);
                     }
                 }
+                for (let plugin of this.plugins) {
+                    if (typeof plugin.onActionDisabled === 'function') {
+                        plugin.onActionDisabled(actionName);
+                    }
+                }
             }
         }
 
@@ -118,55 +126,51 @@
             }
 
             this.target = target;
-
             if (dontEnable) {
                 this.enabled = false;
             } else {
                 this.enabled = true;
             }
 
-            this.target.tabIndex = -1;
-            this.target.focus();
-
             for (let plugin of this.plugins) {
                 if (typeof plugin.attach === 'function') {
                     plugin.attach(target);
-                };
+                }
             }
+
+            this.target.tabIndex = -1;
+            this.target.focus();
         }
 
         detach() {
+            for (let plugin of this.plugins) {
+                if (typeof plugin.detach === 'function') {
+                    plugin.detach();
+                }
+            }
 
             if (this.target) {
                 this.target.blur();
                 this.target = null;
             }
-            this.keysPressed.clear();
-            this.activeActions.clear();
+            this.deactivateAllActions();
             this.enabled = false;
-
-            for (let plugin of this.plugins) {
-                if (typeof plugin.detach === 'function') {
-                    plugin.detach();
-                };
-            }
         }
 
         isActionActive(actionName) {
             if (!this.enabled || !this.focused || !this.actions[actionName] || !this.actions[actionName].enabled) {
                 return false;
             }
-            for (let key of this.actions[actionName].keys) {
-                if (this.keysPressed.has(key)) {
-                    return true;
-                }
-            }
-
-            return false;
+            return this.activeActions.has(actionName);
         }
 
         isKeyPressed(keyCode) {
-            return this.enabled && this.focused && this.keysPressed.has(keyCode);
+            for (let plugin of this.plugins) {
+                if (plugin.name === 'keyboard' && typeof plugin.isKeyPressed === 'function') {
+                    return plugin.isKeyPressed(keyCode);
+                }
+            }
+            return false;
         }
 
         deactivateAllActions() {
@@ -179,6 +183,12 @@
                 }
             }
             this.activeActions.clear();
+
+            for (let plugin of this.plugins) {
+                if (typeof plugin.clear === 'function') {
+                    plugin.clear();
+                }
+            }
         }
     }
 

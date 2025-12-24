@@ -23,7 +23,7 @@
             }
         });
 
-        const keyboardPlugin = new keyboardPlugin();
+        const keyboardPlugin = new KeyboardPlugin();
         controller.registerPlugin(keyboardPlugin);
 
         setupButtons();
