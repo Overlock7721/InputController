@@ -27,15 +27,6 @@
             'down': {
                 enabled: true,
                 keys: [40, 83]
-            },
-            'jump': {
-                enabled: false,
-                keys: [32]
-            },
-            'mouseDrag': {
-                enabled: true,
-                mouseButtons: [0],
-                dragEnabled: true
             }
         });
 
@@ -143,7 +134,23 @@
         };
 
         document.getElementById('addJumpBtn').onclick = function() {
-            controller.enableAction('jump');
+            controller.bindActions({
+                'jump': {
+                    enabled: true,
+                    keys: [32]
+                }
+            });
+            updateActionsList();
+        };
+
+        document.getElementById('addMouseDragBtn').onclick = function() {
+            controller.bindActions({
+                'mouseDrag': {
+                    enabled: true,
+                    mouseButtons: [0],
+                    dragEnabled: true
+                }
+            });
             updateActionsList();
         };
 
@@ -178,7 +185,8 @@
             'Контроллер: ' + (controller.enabled ? 'ВКЛ' : 'ВЫКЛ'),
             'Фокус окна: ' + (controller.focused ? 'ДА' : 'НЕТ'),
             'Активный объект: ' + (activeSquare ? activeSquare.id : 'НЕТ'),
-            'Плагины: ' + Array.from(controller.plugins.keys()).join(', ')
+            'Плагины: ' + Array.from(controller.plugins.keys()).join(', '),
+            'Доступные действия: ' + Array.from(controller.actions.keys()).join(', ')
         ];
 
         statusText.innerHTML = status.join('<br>');
@@ -211,10 +219,10 @@
             let left = parseInt(style.left) || 0;
             let top = parseInt(style.top) || 0;
 
+            const hasMouseDrag = controller.actions.has('mouseDrag');
             const mousePlugin = controller.plugins.get('mouse');
             const isDragging = mousePlugin && mousePlugin.isDragging;
-            const isMouseDragActive = controller.isActionActive('mouseDrag');
-
+            const isMouseDragActive = hasMouseDrag ? controller.isActionActive('mouseDrag') : false;
             if (!isDragging) {
                 if (controller.isActionActive('left')) {
                     left -= speed;
@@ -247,7 +255,8 @@
         gameLoop();
 
         document.addEventListener('keydown', (event) => {
-            if (event.keyCode === 32 && controller.enabled && activeSquare && controller.focused) {
+            const hasJump = controller.actions.has('jump');
+            if (hasJump && event.keyCode === 32 && controller.enabled && activeSquare && controller.focused) {
                 if (!isJumping && controller.isActionEnabled('jump')) {
                     jump();
                 }
@@ -285,7 +294,10 @@
                     activeSquare.style.top = startTop + 'px';
                     activeSquare.style.left = startLeft + 'px';
 
-                    if (controller.isActionActive('mouseDrag')) {
+                    const hasMouseDrag = controller.actions.has('mouseDrag');
+                    const isMouseDragActive = hasMouseDrag ? controller.isActionActive('mouseDrag') : false;
+
+                    if (isMouseDragActive) {
                         activeSquare.style.backgroundColor = 'purple';
                         wasMouseDragActive = true;
                     } else {
