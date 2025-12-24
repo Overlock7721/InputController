@@ -2,9 +2,15 @@
     let controller;
     let activeSquare = null;
     let isJumping = false;
-    let originalColor = '';
+    let originalColors = new Map();
+    let wasMouseDragActive = false;
 
     function init() {
+        document.querySelectorAll('.square').forEach(square => {
+            const style = window.getComputedStyle(square);
+            originalColors.set(square.id, style.backgroundColor);
+        });
+
         controller = new InputController({
             'left': {
                 enabled: true,
@@ -26,9 +32,10 @@
                 enabled: false,
                 keys: [32]
             },
-            'mouseClick': {
+            'mouseDrag': {
                 enabled: true,
-                mouseButtons: [0]
+                mouseButtons: [0],
+                dragEnabled: true
             }
         });
 
@@ -48,30 +55,77 @@
         const squares = document.querySelectorAll('.square');
 
         squares.forEach(square => {
-            square.onclick = function() {
-                if (activeSquare) {
-                    activeSquare.style.border = 'none';
+            square.addEventListener('mousedown', function(event) {
+                if (event.button !== 0) return;
+
+                if (activeSquare !== square) {
+                    if (activeSquare) {
+                        activeSquare.style.border = 'none';
+                        resetSquareColor(activeSquare);
+                    }
+                    controller.attach(square);
+                    activeSquare = square;
+                    activeSquare.style.border = '3px solid black';
+                    updateStatus();
                 }
-                controller.attach(square);
-                activeSquare = square;
-                activeSquare.style.border = '3px solid black';
-                originalColor = square.style.backgroundColor;
-                updateStatus();
-            };
+            });
         });
 
         document.querySelectorAll('button').forEach(btn => {
             btn.tabIndex = -1;
         });
 
-        document.getElementById('attachBtn1').onclick = () => document.getElementById('square1').click();
-        document.getElementById('attachBtn2').onclick = () => document.getElementById('square2').click();
-        document.getElementById('attachBtn3').onclick = () => document.getElementById('square3').click();
-        document.getElementById('attachBtn4').onclick = () => document.getElementById('square4').click();
+        document.getElementById('attachBtn1').onclick = () => {
+            const square = document.getElementById('square1');
+            if (activeSquare) {
+                activeSquare.style.border = 'none';
+                resetSquareColor(activeSquare);
+            }
+            controller.attach(square);
+            activeSquare = square;
+            activeSquare.style.border = '3px solid black';
+            updateStatus();
+        };
 
+        document.getElementById('attachBtn2').onclick = () => {
+            const square = document.getElementById('square2');
+            if (activeSquare) {
+                activeSquare.style.border = 'none';
+                resetSquareColor(activeSquare);
+            }
+            controller.attach(square);
+            activeSquare = square;
+            activeSquare.style.border = '3px solid black';
+            updateStatus();
+        };
+
+        document.getElementById('attachBtn3').onclick = () => {
+            const square = document.getElementById('square3');
+            if (activeSquare) {
+                activeSquare.style.border = 'none';
+                resetSquareColor(activeSquare);
+            }
+            controller.attach(square);
+            activeSquare = square;
+            activeSquare.style.border = '3px solid black';
+            updateStatus();
+        };
+
+        document.getElementById('attachBtn4').onclick = () => {
+            const square = document.getElementById('square4');
+            if (activeSquare) {
+                activeSquare.style.border = 'none';
+                resetSquareColor(activeSquare);
+            }
+            controller.attach(square);
+            activeSquare = square;
+            activeSquare.style.border = '3px solid black';
+            updateStatus();
+        };
         document.getElementById('detachBtn').onclick = function() {
             if (activeSquare) {
                 activeSquare.style.border = 'none';
+                resetSquareColor(activeSquare);
             }
             controller.detach();
             activeSquare = null;
@@ -110,6 +164,13 @@
         updateActionsList();
     }
 
+    function resetSquareColor(square) {
+        const originalColor = originalColors.get(square.id);
+        if (originalColor) {
+            square.style.backgroundColor = originalColor;
+        }
+    }
+
     function updateStatus() {
         const statusText = document.getElementById('statusText');
 
@@ -131,7 +192,7 @@
             const option = document.createElement('option');
             option.value = actionName;
 
-            let description = `${actionName} (${action.enabled ? 'вкл' : 'выкл' })`;
+            let description = `${actionName} (${action.enabled ? 'вкл' : 'выкл'})`;
 
             option.text = description;
             select.appendChild(option);
@@ -139,38 +200,51 @@
     }
 
     function startMovementLoop() {
-        setInterval(() => {
-            if (!controller.enabled || !controller.focused || !activeSquare) return;
+        function gameLoop() {
+            if (!controller.enabled || !controller.focused || !activeSquare) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
 
             const speed = 5;
             const style = window.getComputedStyle(activeSquare);
             let left = parseInt(style.left) || 0;
             let top = parseInt(style.top) || 0;
 
-            if (controller.isActionActive('left')) {
-                left -= speed;
-            }
-            if (controller.isActionActive('right')) {
-                left += speed;
-            }
-            if (controller.isActionActive('up')) {
-                top -= speed;
-            }
-            if (controller.isActionActive('down')) {
-                top += speed;
+            const mousePlugin = controller.plugins.get('mouse');
+            const isDragging = mousePlugin && mousePlugin.isDragging;
+            const isMouseDragActive = controller.isActionActive('mouseDrag');
+
+            if (!isDragging) {
+                if (controller.isActionActive('left')) {
+                    left -= speed;
+                }
+                if (controller.isActionActive('right')) {
+                    left += speed;
+                }
+                if (controller.isActionActive('up')) {
+                    top -= speed;
+                }
+                if (controller.isActionActive('down')) {
+                    top += speed;
+                }
             }
 
-            if (controller.isActionActive('mouseClick')) {
+            if (isMouseDragActive) {
                 activeSquare.style.backgroundColor = 'purple';
-            } else if (controller.isActionActive('action')) {
-                activeSquare.style.backgroundColor = 'orange';
-            } else {
-                activeSquare.style.backgroundColor = originalColor;
+                wasMouseDragActive = true;
+            } else if (wasMouseDragActive && !isJumping) {
+                resetSquareColor(activeSquare);
+                wasMouseDragActive = false;
             }
 
             activeSquare.style.left = left + 'px';
             activeSquare.style.top = top + 'px';
-        }, 16);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
 
         document.addEventListener('keydown', (event) => {
             if (event.keyCode === 32 && controller.enabled && activeSquare && controller.focused) {
@@ -185,11 +259,14 @@
         if (isJumping) return;
 
         isJumping = true;
-        const startColor = activeSquare.style.backgroundColor;
+        const originalColor = activeSquare.style.backgroundColor;
         const style = window.getComputedStyle(activeSquare);
         const startTop = parseInt(style.top) || 0;
+        const startLeft = parseInt(style.left) || 0;
         let height = 0;
         let goingUp = true;
+
+        activeSquare.style.backgroundColor = 'orange';
 
         const jumpInterval = setInterval(() => {
             if (goingUp) {
@@ -206,7 +283,16 @@
                 if (height <= 0) {
                     clearInterval(jumpInterval);
                     activeSquare.style.top = startTop + 'px';
-                    activeSquare.style.backgroundColor = startColor;
+                    activeSquare.style.left = startLeft + 'px';
+
+                    if (controller.isActionActive('mouseDrag')) {
+                        activeSquare.style.backgroundColor = 'purple';
+                        wasMouseDragActive = true;
+                    } else {
+                        resetSquareColor(activeSquare);
+                        wasMouseDragActive = false;
+                    }
+
                     isJumping = false;
                 }
             }

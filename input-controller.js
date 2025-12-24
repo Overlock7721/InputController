@@ -1,4 +1,6 @@
 (function() {
+    'use strict';
+
     class InputController {
         constructor(actionsToBind = {}, target = null) {
             this.enabled = true;
@@ -44,7 +46,9 @@
                 plugin.init({
                     getActions: () => this.actions,
                     setActionActive: (actionName, active) => this.setActionActive(actionName, active),
-                    isActionEnabled: (actionName) => this.isActionEnabled(actionName)
+                    isActionEnabled: (actionName) => this.isActionEnabled(actionName),
+                    isControllerEnabled: () => this.enabled,
+                    isControllerFocused: () => this.focused
                 });
             }
 

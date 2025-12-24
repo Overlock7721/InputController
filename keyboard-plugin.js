@@ -43,7 +43,7 @@
         }
 
         handleKeyDown(event) {
-            if (!this.callbacks || !this.target) return;
+            if (!this.callbacks || !this.target || !this.callbacks.isControllerEnabled() || !this.callbacks.isControllerFocused()) return;
 
             const keyCode = event.keyCode;
             this.keysPressed.add(keyCode);
@@ -66,7 +66,7 @@
         }
 
         handleKeyUp(event) {
-            if (!this.callbacks || !this.target) return;
+            if (!this.callbacks || !this.target || !this.callbacks.isControllerEnabled() || !this.callbacks.isControllerFocused()) return;
 
             const keyCode = event.keyCode;
             this.keysPressed.delete(keyCode);
