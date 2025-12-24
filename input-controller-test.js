@@ -2,34 +2,33 @@
     let controller;
     let activeSquare = null;
     let isJumping = false;
+    let originalColor = '';
 
     function init() {
         controller = new InputController({
             'left': {
-                keys: [37, 65],
-                enabled: true
+                enabled: true,
+                keys: [37, 65]
             },
             'right': {
-                keys: [39, 68],
-                enabled: true
+                enabled: true,
+                keys: [39, 68]
             },
             'up': {
-                keys: [38, 87],
-                enabled: true
+                enabled: true,
+                keys: [38, 87]
             },
             'down': {
-                keys: [40, 83],
-                enabled: true
+                enabled: true,
+                keys: [40, 83]
             },
             'jump': {
-                keys: [32],
-                enabled: false
+                enabled: false,
+                keys: [32]
             },
             'mouseClick': {
                 enabled: true,
-                params: {
-                    mouseButtons: [0]
-                }
+                mouseButtons: [0]
             }
         });
 
@@ -46,70 +45,29 @@
     }
 
     function setupButtons() {
-        let square1 = document.getElementById('square1');
-        let square2 = document.getElementById('square2');
-        let square3 = document.getElementById('square3');
-        let square4 = document.getElementById('square4');
+        const squares = document.querySelectorAll('.square');
 
-        square1.onclick = function() {
-            if (activeSquare) {
-                activeSquare.style.border = 'none';
-            }
-            controller.attach(square1);
-            activeSquare = square1;
-            activeSquare.style.border = '3px solid black';
-            updateStatus();
-        };
-
-        square2.onclick = function() {
-            if (activeSquare) {
-                activeSquare.style.border = 'none';
-            }
-            controller.attach(square2);
-            activeSquare = square2;
-            activeSquare.style.border = '3px solid black';
-            updateStatus();
-        };
-
-        square3.onclick = function() {
-            if (activeSquare) {
-                activeSquare.style.border = 'none';
-            }
-            controller.attach(square3);
-            activeSquare = square3;
-            activeSquare.style.border = '3px solid black';
-            updateStatus();
-        };
-
-        square4.onclick = function() {
-            if (activeSquare) {
-                activeSquare.style.border = 'none';
-            }
-            controller.attach(square4);
-            activeSquare = square4;
-            activeSquare.style.border = '3px solid black';
-            updateStatus();
-        };
+        squares.forEach(square => {
+            square.onclick = function() {
+                if (activeSquare) {
+                    activeSquare.style.border = 'none';
+                }
+                controller.attach(square);
+                activeSquare = square;
+                activeSquare.style.border = '3px solid black';
+                originalColor = square.style.backgroundColor;
+                updateStatus();
+            };
+        });
 
         document.querySelectorAll('button').forEach(btn => {
             btn.tabIndex = -1;
         });
 
-        document.getElementById('attachBtn1').onclick = function() {
-            document.getElementById('square1').click();
-        };
-
-        document.getElementById('attachBtn2').onclick = function() {
-            document.getElementById('square2').click();
-        };
-
-        document.getElementById('attachBtn3').onclick = function() {
-            document.getElementById('square3').click();
-        };
-
-        document.getElementById('attachBtn4').onclick = function() {
-            document.getElementById('square4').click();
-        };
+        document.getElementById('attachBtn1').onclick = () => document.getElementById('square1').click();
+        document.getElementById('attachBtn2').onclick = () => document.getElementById('square2').click();
+        document.getElementById('attachBtn3').onclick = () => document.getElementById('square3').click();
+        document.getElementById('attachBtn4').onclick = () => document.getElementById('square4').click();
 
         document.getElementById('detachBtn').onclick = function() {
             if (activeSquare) {
@@ -136,12 +94,12 @@
         };
 
         document.getElementById('toggleBtn').onclick = function() {
-            let select = document.getElementById('actionSelect');
-            let action = select.value;
+            const select = document.getElementById('actionSelect');
+            const action = select.value;
 
-            if (controller.actions[action] && controller.actions[action].enabled) {
+            if (controller.isActionEnabled(action)) {
                 controller.disableAction(action);
-            } else if (controller.actions[action]) {
+            } else {
                 controller.enableAction(action);
             }
 
@@ -153,39 +111,41 @@
     }
 
     function updateStatus() {
-        let statusText = document.getElementById('statusText');
+        const statusText = document.getElementById('statusText');
 
-        let status = [
+        const status = [
             'Контроллер: ' + (controller.enabled ? 'ВКЛ' : 'ВЫКЛ'),
             'Фокус окна: ' + (controller.focused ? 'ДА' : 'НЕТ'),
             'Активный объект: ' + (activeSquare ? activeSquare.id : 'НЕТ'),
-            'Плагины: ' + controller.plugins.length
+            'Плагины: ' + Array.from(controller.plugins.keys()).join(', ')
         ];
 
         statusText.innerHTML = status.join('<br>');
     }
 
     function updateActionsList() {
-        let select = document.getElementById('actionSelect');
+        const select = document.getElementById('actionSelect');
         select.innerHTML = '';
 
-        for (let actionName in controller.actions) {
-            let option = document.createElement('option');
+        for (const [actionName, action] of controller.actions) {
+            const option = document.createElement('option');
             option.value = actionName;
-            option.text = actionName + ' (' + (controller.actions[actionName].enabled ? 'вкл' : 'выкл') + ')';
+
+            let description = `${actionName} (${action.enabled ? 'вкл' : 'выкл' })`;
+
+            option.text = description;
             select.appendChild(option);
         }
     }
 
     function startMovementLoop() {
-        setInterval(function() {
+        setInterval(() => {
             if (!controller.enabled || !controller.focused || !activeSquare) return;
 
-            let speed = 5;
-
-            let currentStyle = window.getComputedStyle(activeSquare);
-            let left = parseInt(currentStyle.left) || 0;
-            let top = parseInt(currentStyle.top) || 0;
+            const speed = 5;
+            const style = window.getComputedStyle(activeSquare);
+            let left = parseInt(style.left) || 0;
+            let top = parseInt(style.top) || 0;
 
             if (controller.isActionActive('left')) {
                 left -= speed;
@@ -201,26 +161,20 @@
             }
 
             if (controller.isActionActive('mouseClick')) {
+                activeSquare.style.backgroundColor = 'purple';
+            } else if (controller.isActionActive('action')) {
                 activeSquare.style.backgroundColor = 'orange';
             } else {
-                if (activeSquare.id === 'square1') {
-                    activeSquare.style.backgroundColor = '#3498db';
-                } else if (activeSquare.id === 'square2') {
-                    activeSquare.style.backgroundColor = '#e74c3c';
-                } else if (activeSquare.id === 'square3') {
-                    activeSquare.style.backgroundColor = '#ffe926';
-                } else if (activeSquare.id === 'square4') {
-                    activeSquare.style.backgroundColor = '#08ca08';
-                }
+                activeSquare.style.backgroundColor = originalColor;
             }
 
             activeSquare.style.left = left + 'px';
             activeSquare.style.top = top + 'px';
         }, 16);
 
-        document.addEventListener('keydown', function(event) {
+        document.addEventListener('keydown', (event) => {
             if (event.keyCode === 32 && controller.enabled && activeSquare && controller.focused) {
-                if (!isJumping && controller.actions['jump'] && controller.actions['jump'].enabled) {
+                if (!isJumping && controller.isActionEnabled('jump')) {
                     jump();
                 }
             }
@@ -231,37 +185,33 @@
         if (isJumping) return;
 
         isJumping = true;
-        let originalColor = activeSquare.style.backgroundColor;
-        activeSquare.style.backgroundColor = 'purple';
-        let currentStyle = window.getComputedStyle(activeSquare);
-        let startTop = parseInt(currentStyle.top) || 0;
-        let jumpMax = 100;
-        let currentHeight = 0;
+        const startColor = activeSquare.style.backgroundColor;
+        const style = window.getComputedStyle(activeSquare);
+        const startTop = parseInt(style.top) || 0;
+        let height = 0;
         let goingUp = true;
 
-        let jumpInterval = setInterval(function() {
+        const jumpInterval = setInterval(() => {
             if (goingUp) {
-                currentHeight += 5;
-                activeSquare.style.top = (startTop - currentHeight) + 'px';
+                height += 5;
+                activeSquare.style.top = (startTop - height) + 'px';
 
-                if (currentHeight >= jumpMax) {
+                if (height >= 100) {
                     goingUp = false;
                 }
             } else {
-                currentHeight -= 5;
-                activeSquare.style.top = (startTop - currentHeight) + 'px';
+                height -= 5;
+                activeSquare.style.top = (startTop - height) + 'px';
 
-                if (currentHeight <= 0) {
+                if (height <= 0) {
                     clearInterval(jumpInterval);
                     activeSquare.style.top = startTop + 'px';
-                    activeSquare.style.backgroundColor = originalColor;
+                    activeSquare.style.backgroundColor = startColor;
                     isJumping = false;
                 }
             }
         }, 16);
     }
 
-
     window.onload = init;
-
 })();

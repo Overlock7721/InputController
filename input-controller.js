@@ -6,10 +6,10 @@
             this.ACTION_ACTIVATED = "input-controller:action-activated";
             this.ACTION_DEACTIVATED = "input-controller:action-deactivated";
 
-            this.actions = {};
+            this.actions = new Map();
             this.activeActions = new Set();
+            this.plugins = new Map();
             this.target = null;
-            this.plugins = [];
 
             if (actionsToBind && Object.keys(actionsToBind).length > 0) {
                 this.bindActions(actionsToBind);
@@ -22,27 +22,108 @@
             window.addEventListener('focus', () => {
                 this.focused = true;
             });
+
             window.addEventListener('blur', () => {
                 this.focused = false;
-                this.deactivateAllActions();
+                this.clearActiveActions();
             });
         }
 
         registerPlugin(plugin) {
-            this.plugins.push(plugin);
-            if (typeof plugin.init === 'function') {
-                plugin.init(this);
+            if (!plugin || !plugin.name) {
+                return false;
             }
-            for (let actionName in this.actions) {
+
+            if (this.plugins.has(plugin.name)) {
+                return false;
+            }
+
+            this.plugins.set(plugin.name, plugin);
+
+            if (typeof plugin.init === 'function') {
+                plugin.init({
+                    getActions: () => this.actions,
+                    setActionActive: (actionName, active) => this.setActionActive(actionName, active),
+                    isActionEnabled: (actionName) => this.isActionEnabled(actionName)
+                });
+            }
+
+            this.bindActionsToPlugin(plugin);
+
+            return true;
+        }
+
+        unregisterPlugin(pluginName) {
+            if (!this.plugins.has(pluginName)) return false;
+
+            const plugin = this.plugins.get(pluginName);
+            if (typeof plugin.detach === 'function') {
+                plugin.detach();
+            }
+
+            this.plugins.delete(pluginName);
+            return true;
+        }
+
+        bindActionsToPlugin(plugin) {
+            for (const [actionName, action] of this.actions) {
                 if (typeof plugin.bindAction === 'function') {
-                    plugin.bindAction(actionName, this.actions[actionName]);
+                    plugin.bindAction(actionName, action);
                 }
             }
-            return this;
+        }
+
+        bindActions(actionsToBind) {
+            for (const [actionName, actionConfig] of Object.entries(actionsToBind)) {
+                if (this.actions.has(actionName)) {
+                    const existingAction = this.actions.get(actionName);
+                    Object.assign(existingAction, actionConfig);
+                } else {
+                    this.actions.set(actionName, {
+                        name: actionName,
+                        enabled: actionConfig.enabled !== false,
+                        ...actionConfig
+                    });
+                }
+
+                this.notifyPluginsAboutAction(actionName);
+            }
+        }
+
+        notifyPluginsAboutAction(actionName) {
+            const action = this.actions.get(actionName);
+            if (!action) return;
+            for (const plugin of this.plugins.values()) {
+                if (typeof plugin.bindAction === 'function') {
+                    plugin.bindAction(actionName, action);
+                }
+            }
+        }
+
+        enableAction(actionName) {
+            const action = this.actions.get(actionName);
+            if (action) {
+                action.enabled = true;
+                this.notifyPluginsAboutAction(actionName);
+            }
+        }
+
+        disableAction(actionName) {
+            const action = this.actions.get(actionName);
+            if (action) {
+                action.enabled = false;
+
+                if (this.activeActions.has(actionName)) {
+                    this.setActionActive(actionName, false);
+                }
+
+                this.notifyPluginsAboutAction(actionName);
+            }
         }
 
         setActionActive(actionName, active) {
-            if (!this.actions[actionName] || !this.actions[actionName].enabled) return;
+            const action = this.actions.get(actionName);
+            if (!action || !action.enabled) return;
 
             const wasActive = this.activeActions.has(actionName);
 
@@ -65,59 +146,14 @@
             }
         }
 
-        bindActions(actionsToBind) {
-            for (let actionName in actionsToBind) {
-                if (this.actions[actionName]) {
-                    const existingAction = this.actions[actionName];
-                    existingAction.keys = actionsToBind[actionName].keys || [];
-                    if (actionsToBind[actionName].enabled !== undefined) {
-                        existingAction.enabled = actionsToBind[actionName].enabled;
-                    }
-                } else {
-                    this.actions[actionName] = {
-                        keys: actionsToBind[actionName].keys || [],
-                        enabled: actionsToBind[actionName].enabled == true,
-                        params: actionsToBind[actionName].params || {}
-                    };
-                }
-
-                for (let plugin of this.plugins) {
-                    if (typeof plugin.bindAction === 'function') {
-                        plugin.bindAction(actionName, this.actions[actionName]);
-                    }
-                }
-            }
+        isActionActive(actionName) {
+            if (!this.enabled || !this.focused) return false;
+            return this.activeActions.has(actionName);
         }
 
-        enableAction(actionName) {
-            if (this.actions[actionName]) {
-                this.actions[actionName].enabled = true;
-                for (let plugin of this.plugins) {
-                    if (typeof plugin.onActionEnabled === 'function') {
-                        plugin.onActionEnabled(actionName);
-                    }
-                }
-            }
-        }
-
-        disableAction(actionName) {
-            if (this.actions[actionName]) {
-                this.actions[actionName].enabled = false;
-                if (this.activeActions.has(actionName)) {
-                    this.activeActions.delete(actionName);
-                    if (this.target && this.enabled && this.focused) {
-                        const event = new CustomEvent(this.ACTION_DEACTIVATED, {
-                            detail: actionName
-                        });
-                        this.target.dispatchEvent(event);
-                    }
-                }
-                for (let plugin of this.plugins) {
-                    if (typeof plugin.onActionDisabled === 'function') {
-                        plugin.onActionDisabled(actionName);
-                    }
-                }
-            }
+        isActionEnabled(actionName) {
+            const action = this.actions.get(actionName);
+            return action ? action.enabled : false;
         }
 
         attach(target, dontEnable = false) {
@@ -126,13 +162,9 @@
             }
 
             this.target = target;
-            if (dontEnable) {
-                this.enabled = false;
-            } else {
-                this.enabled = true;
-            }
+            this.enabled = !dontEnable;
 
-            for (let plugin of this.plugins) {
+            for (const plugin of this.plugins.values()) {
                 if (typeof plugin.attach === 'function') {
                     plugin.attach(target);
                 }
@@ -143,7 +175,7 @@
         }
 
         detach() {
-            for (let plugin of this.plugins) {
+            for (const plugin of this.plugins.values()) {
                 if (typeof plugin.detach === 'function') {
                     plugin.detach();
                 }
@@ -153,40 +185,20 @@
                 this.target.blur();
                 this.target = null;
             }
-            this.deactivateAllActions();
+
+            this.clearActiveActions();
             this.enabled = false;
         }
 
-        isActionActive(actionName) {
-            if (!this.enabled || !this.focused || !this.actions[actionName] || !this.actions[actionName].enabled) {
-                return false;
-            }
-            return this.activeActions.has(actionName);
-        }
-
-        isKeyPressed(keyCode) {
-            for (let plugin of this.plugins) {
-                if (plugin.name === 'keyboard' && typeof plugin.isKeyPressed === 'function') {
-                    return plugin.isKeyPressed(keyCode);
-                }
-            }
-            return false;
-        }
-
-        deactivateAllActions() {
-            for (let actionName of this.activeActions) {
-                if (this.target && this.enabled) {
+        clearActiveActions() {
+            const previouslyActive = Array.from(this.activeActions);
+            this.activeActions.clear();
+            if (this.target) {
+                for (const actionName of previouslyActive) {
                     const event = new CustomEvent(this.ACTION_DEACTIVATED, {
                         detail: actionName
                     });
                     this.target.dispatchEvent(event);
-                }
-            }
-            this.activeActions.clear();
-
-            for (let plugin of this.plugins) {
-                if (typeof plugin.clear === 'function') {
-                    plugin.clear();
                 }
             }
         }
