@@ -70,16 +70,22 @@
                     if (actionsToBind[actionName].enabled !== undefined) {
                         existingAction.enabled = actionsToBind[actionName].enabled;
                     }
+
+                    if (actionsToBind[actionName].params) {
+                        existingAction.params = actionsToBind[actionName].params;
+                    }
+
                 } else {
                     this.actions[actionName] = {
                         keys: actionsToBind[actionName].keys || [],
-                        enabled: actionsToBind[actionName].enabled == true
+                        enabled: actionsToBind[actionName].enabled == true,
+                        params: actionsToBind[actionName].params || {}
                     };
                 }
 
                 for (let plugin of this.plugins) {
                     if (typeof plugin.bindActions === 'function') {
-                        plugin.bindActions(actionsToBind);
+                        plugin.bindActions(actionName, this.actions[actionName]);
                     };
                 }
             }
