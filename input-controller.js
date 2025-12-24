@@ -38,8 +38,28 @@
             return this;
         }
 
-        setActionActive(actionName) {
+        setActionActive(actionName, active) {
+            if (!this.actions[actionName] || !this.actions[actionName].enabled) return;
 
+            const wasActive = this.activeActions.has[actionName];
+
+            if (active && !wasActive) {
+                this.activeActions.add(actionName);
+                if (this.target && this.enabled && this.focused) {
+                    const event = new CustomEvent(this.ACTION_ACTIVATED, {
+                        detail: actionName
+                    });
+                    this.target.dispatchEvent(event);
+                }
+            } else if (!active && wasActive) {
+                this.activeActions.delete(actionName);
+                if (this.target && this.enabled && this.focused) {
+                    const event = new CustomEvent(this.ACTION_DEACTIVATED, {
+                        detail: actionName
+                    });
+                    this.target.dispatchEvent(event);
+                }
+            }
         }
 
         bindActions(actionsToBind) {
@@ -93,16 +113,11 @@
                 this.enabled = true;
             }
 
-            window.addEventListener('keydown', this.handleKeyDown.bind(this));
-            window.addEventListener('keyup', this.handleKeyUp.bind(this));
-
             this.target.tabIndex = -1;
             this.target.focus();
         }
 
         detach() {
-            window.removeEventListener('keydown', this.handleKeyDown.bind(this));
-            window.removeEventListener('keyup', this.handleKeyUp.bind(this));
 
             if (this.target) {
                 this.target.blur();
@@ -129,57 +144,6 @@
         isKeyPressed(keyCode) {
             return this.enabled && this.focused && this.keysPressed.has(keyCode);
         }
-
-        // handleKeyDown(event) {
-        //     if (!this.enabled || !this.focused || !this.target) return;
-
-        //     let keyCode = event.keyCode;
-        //     this.keysPressed.add(keyCode);
-
-        //     for (let actionName in this.actions) {
-        //         let action = this.actions[actionName];
-
-        //         if (action.enabled && action.keys.includes(keyCode)) {
-        //             if (!this.activeActions.has(actionName)) {
-        //                 this.activeActions.add(actionName);
-        //                 let eventObj = new CustomEvent(this.ACTION_ACTIVATED, {
-        //                     detail: actionName
-        //                 });
-        //                 this.target.dispatchEvent(eventObj);
-        //             }
-        //         }
-        //     }
-        // }
-
-        // handleKeyUp(event) {
-        //     if (!this.enabled || !this.focused || !this.target) return;
-
-        //     let keyCode = event.keyCode;
-        //     this.keysPressed.delete(keyCode);
-
-        //     for (let actionName in this.actions) {
-        //         let action = this.actions[actionName];
-
-        //         if (action.enabled && action.keys.includes(keyCode)) {
-        //             let stillActive = false;
-
-        //             for (let key of action.keys) {
-        //                 if (this.keysPressed.has(key)) {
-        //                     stillActive = true;
-        //                     break;
-        //                 }
-        //             }
-
-        //             if (!stillActive && this.activeActions.has(actionName)) {
-        //                 this.activeActions.delete(actionName);
-        //                 let eventObj = new CustomEvent(this.ACTION_DEACTIVATED, {
-        //                     detail: actionName
-        //                 });
-        //                 this.target.dispatchEvent(eventObj);
-        //             }
-        //         }
-        //     }
-        // }
 
         deactivateAllActions() {
             for (let actionName of this.activeActions) {
