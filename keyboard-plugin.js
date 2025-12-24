@@ -15,13 +15,13 @@
         }
 
         attach(target) {
-            window.addEventListener('keydown', this.handleKeyDown.bind(this));
-            window.addEventListener('keyup', this.handleKeyUp.bind(this));
+            window.addEventListener('keydown', this.handleKeyDown);
+            window.addEventListener('keyup', this.handleKeyUp);
         }
 
-        detach(target) {
-            window.removeEventListener('keydown', this.handleKeyDown.bind(this));
-            window.removeEventListener('keyup', this.handleKeyUp.bind(this));
+        detach() {
+            window.removeEventListener('keydown', this.handleKeyDown);
+            window.removeEventListener('keyup', this.handleKeyUp);
             this.keysPressed.clear();
         }
 
@@ -32,7 +32,7 @@
             this.keysPressed.add(keyCode);
         }
 
-        handleKeyup(event) {
+        handleKeyUp(event) {
             if (!this.controller.enabled || !this.controller.focused || !this.controller) return;
 
             let keyCode = event.keyCode;

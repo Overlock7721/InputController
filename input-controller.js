@@ -115,6 +115,12 @@
 
             this.target.tabIndex = -1;
             this.target.focus();
+
+            for (let plugin of this.plugins) {
+                if (typeof plugin.attach === 'function') {
+                    plugin.attach(this);
+                };
+            }
         }
 
         detach() {
@@ -126,6 +132,12 @@
             this.keysPressed.clear();
             this.activeActions.clear();
             this.enabled = false;
+
+            for (let plugin of this.plugins) {
+                if (typeof plugin.detach === 'function') {
+                    plugin.detach(this);
+                };
+            }
         }
 
         isActionActive(actionName) {
