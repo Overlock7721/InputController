@@ -23,6 +23,9 @@
             }
         });
 
+        const keyboardPlugin = new keyboardPlugin();
+        controller.registerPlugin(keyboardPlugin);
+
         setupButtons();
         updateStatus();
         startMovementLoop();

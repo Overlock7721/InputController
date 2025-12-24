@@ -30,9 +30,16 @@
             });
         }
 
-        newPlugin(plugin) {
+        registerPlugin(plugin) {
             this.plugins.push(plugin);
+            if (typeof plugin.init === 'function') {
+                plugin.init(this);
+            };
             return this;
+        }
+
+        setActionActive(actionName) {
+
         }
 
         bindActions(actionsToBind) {
@@ -123,56 +130,56 @@
             return this.enabled && this.focused && this.keysPressed.has(keyCode);
         }
 
-        handleKeyDown(event) {
-            if (!this.enabled || !this.focused || !this.target) return;
+        // handleKeyDown(event) {
+        //     if (!this.enabled || !this.focused || !this.target) return;
 
-            let keyCode = event.keyCode;
-            this.keysPressed.add(keyCode);
+        //     let keyCode = event.keyCode;
+        //     this.keysPressed.add(keyCode);
 
-            for (let actionName in this.actions) {
-                let action = this.actions[actionName];
+        //     for (let actionName in this.actions) {
+        //         let action = this.actions[actionName];
 
-                if (action.enabled && action.keys.includes(keyCode)) {
-                    if (!this.activeActions.has(actionName)) {
-                        this.activeActions.add(actionName);
-                        let eventObj = new CustomEvent(this.ACTION_ACTIVATED, {
-                            detail: actionName
-                        });
-                        this.target.dispatchEvent(eventObj);
-                    }
-                }
-            }
-        }
+        //         if (action.enabled && action.keys.includes(keyCode)) {
+        //             if (!this.activeActions.has(actionName)) {
+        //                 this.activeActions.add(actionName);
+        //                 let eventObj = new CustomEvent(this.ACTION_ACTIVATED, {
+        //                     detail: actionName
+        //                 });
+        //                 this.target.dispatchEvent(eventObj);
+        //             }
+        //         }
+        //     }
+        // }
 
-        handleKeyUp(event) {
-            if (!this.enabled || !this.focused || !this.target) return;
+        // handleKeyUp(event) {
+        //     if (!this.enabled || !this.focused || !this.target) return;
 
-            let keyCode = event.keyCode;
-            this.keysPressed.delete(keyCode);
+        //     let keyCode = event.keyCode;
+        //     this.keysPressed.delete(keyCode);
 
-            for (let actionName in this.actions) {
-                let action = this.actions[actionName];
+        //     for (let actionName in this.actions) {
+        //         let action = this.actions[actionName];
 
-                if (action.enabled && action.keys.includes(keyCode)) {
-                    let stillActive = false;
+        //         if (action.enabled && action.keys.includes(keyCode)) {
+        //             let stillActive = false;
 
-                    for (let key of action.keys) {
-                        if (this.keysPressed.has(key)) {
-                            stillActive = true;
-                            break;
-                        }
-                    }
+        //             for (let key of action.keys) {
+        //                 if (this.keysPressed.has(key)) {
+        //                     stillActive = true;
+        //                     break;
+        //                 }
+        //             }
 
-                    if (!stillActive && this.activeActions.has(actionName)) {
-                        this.activeActions.delete(actionName);
-                        let eventObj = new CustomEvent(this.ACTION_DEACTIVATED, {
-                            detail: actionName
-                        });
-                        this.target.dispatchEvent(eventObj);
-                    }
-                }
-            }
-        }
+        //             if (!stillActive && this.activeActions.has(actionName)) {
+        //                 this.activeActions.delete(actionName);
+        //                 let eventObj = new CustomEvent(this.ACTION_DEACTIVATED, {
+        //                     detail: actionName
+        //                 });
+        //                 this.target.dispatchEvent(eventObj);
+        //             }
+        //         }
+        //     }
+        // }
 
         deactivateAllActions() {
             for (let actionName of this.activeActions) {
