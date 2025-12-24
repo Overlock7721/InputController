@@ -20,11 +20,24 @@
             'down': {
                 keys: [40, 83],
                 enabled: true
+            },
+            'jump': {
+                keys: [32],
+                enabled: false
+            },
+            'mouseClick': {
+                enabled: true,
+                params: {
+                    mouseButtons: [0]
+                }
             }
         });
 
         const keyboardPlugin = new KeyboardPlugin();
+        const mousePlugin = new MousePlugin();
+
         controller.registerPlugin(keyboardPlugin);
+        controller.registerPlugin(mousePlugin);
 
         setupButtons();
         updateStatus();
@@ -118,12 +131,7 @@
         };
 
         document.getElementById('addJumpBtn').onclick = function() {
-            controller.bindActions({
-                'jump': {
-                    keys: [32],
-                    enabled: true
-                }
-            });
+            controller.enableAction('jump');
             updateActionsList();
         };
 
@@ -131,9 +139,9 @@
             let select = document.getElementById('actionSelect');
             let action = select.value;
 
-            if (controller.actions[action].enabled) {
+            if (controller.actions[action] && controller.actions[action].enabled) {
                 controller.disableAction(action);
-            } else {
+            } else if (controller.actions[action]) {
                 controller.enableAction(action);
             }
 
@@ -150,7 +158,8 @@
         let status = [
             'Контроллер: ' + (controller.enabled ? 'ВКЛ' : 'ВЫКЛ'),
             'Фокус окна: ' + (controller.focused ? 'ДА' : 'НЕТ'),
-            'Активный объект: ' + (activeSquare ? activeSquare.id : 'НЕТ')
+            'Активный объект: ' + (activeSquare ? activeSquare.id : 'НЕТ'),
+            'Плагины: ' + controller.plugins.length
         ];
 
         statusText.innerHTML = status.join('<br>');
@@ -191,6 +200,20 @@
                 top += speed;
             }
 
+            if (controller.isActionActive('mouseClick')) {
+                activeSquare.style.backgroundColor = 'orange';
+            } else {
+                if (activeSquare.id === 'square1') {
+                    activeSquare.style.backgroundColor = '#3498db';
+                } else if (activeSquare.id === 'square2') {
+                    activeSquare.style.backgroundColor = '#e74c3c';
+                } else if (activeSquare.id === 'square3') {
+                    activeSquare.style.backgroundColor = '#ffe926';
+                } else if (activeSquare.id === 'square4') {
+                    activeSquare.style.backgroundColor = '#08ca08';
+                }
+            }
+
             activeSquare.style.left = left + 'px';
             activeSquare.style.top = top + 'px';
         }, 16);
@@ -202,8 +225,6 @@
                 }
             }
         });
-
-        updateActionsList();
     }
 
     function jump() {
