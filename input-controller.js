@@ -109,6 +109,12 @@
             if (action) {
                 action.enabled = true;
                 this.notifyPluginsAboutAction(actionName);
+
+                for (const plugin of this.plugins.values()) {
+                    if (typeof plugin.onActionEnabled === 'function') {
+                        plugin.onActionEnabled(actionName);
+                    }
+                }
             }
         }
 
@@ -122,18 +128,24 @@
                 }
 
                 this.notifyPluginsAboutAction(actionName);
+
+                for (const plugin of this.plugins.values()) {
+                    if (typeof plugin.onActionDisabled === 'function') {
+                        plugin.onActionDisabled(actionName);
+                    }
+                }
             }
         }
 
         setActionActive(actionName, active) {
             const action = this.actions.get(actionName);
-            if (!action || !action.enabled) return;
+            if (!action || !action.enabled || !this.enabled || !this.focused) return;
 
             const wasActive = this.activeActions.has(actionName);
 
             if (active && !wasActive) {
                 this.activeActions.add(actionName);
-                if (this.target && this.enabled && this.focused) {
+                if (this.target) {
                     const event = new CustomEvent(this.ACTION_ACTIVATED, {
                         detail: actionName
                     });
@@ -141,7 +153,7 @@
                 }
             } else if (!active && wasActive) {
                 this.activeActions.delete(actionName);
-                if (this.target && this.enabled && this.focused) {
+                if (this.target) {
                     const event = new CustomEvent(this.ACTION_DEACTIVATED, {
                         detail: actionName
                     });
@@ -152,6 +164,10 @@
 
         isActionActive(actionName) {
             if (!this.enabled || !this.focused) return false;
+
+            const action = this.actions.get(actionName);
+            if (!action || !action.enabled) return false;
+
             return this.activeActions.has(actionName);
         }
 

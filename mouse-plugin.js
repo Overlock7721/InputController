@@ -37,6 +37,30 @@
             }
         }
 
+        onActionEnabled(actionName) {
+            const action = this.actions.get(actionName);
+            if (action) {
+                action.enabled = true;
+            }
+        }
+
+        onActionDisabled(actionName) {
+            const action = this.actions.get(actionName);
+            if (action) {
+                action.enabled = false;
+
+                for (const button of action.mouseButtons) {
+                    if (this.mouseButtons.has(button)) {
+                        this.callbacks.setActionActive(actionName, false);
+                    }
+                }
+
+                if (action.dragEnabled && this.isDragging) {
+                    this.stopDragging();
+                }
+            }
+        }
+
         attach(target) {
             this.target = target;
             if (target) {
@@ -63,23 +87,23 @@
             const button = event.button;
             this.mouseButtons.add(button);
 
-            if (button === 0) {
-                this.isDragging = true;
-                this.dragStartX = event.clientX;
-                this.dragStartY = event.clientY;
-
-                const style = window.getComputedStyle(this.target);
-                this.elementStartX = parseInt(style.left) || 0;
-                this.elementStartY = parseInt(style.top) || 0;
-
-                document.addEventListener('mousemove', this.handleMouseMove);
-                document.addEventListener('mouseup', this.handleMouseUp);
-
-                event.preventDefault();
-            }
-
             for (const [actionName, action] of this.actions) {
                 if (action.enabled && action.mouseButtons.includes(button)) {
+                    if (action.dragEnabled && button === 0) {
+                        this.isDragging = true;
+                        this.dragStartX = event.clientX;
+                        this.dragStartY = event.clientY;
+
+                        const style = window.getComputedStyle(this.target);
+                        this.elementStartX = parseInt(style.left) || 0;
+                        this.elementStartY = parseInt(style.top) || 0;
+
+                        document.addEventListener('mousemove', this.handleMouseMove);
+                        document.addEventListener('mouseup', this.handleMouseUp);
+
+                        event.preventDefault();
+                    }
+
                     this.callbacks.setActionActive(actionName, true);
                 }
             }
@@ -87,6 +111,19 @@
 
         handleMouseMove(event) {
             if (!this.callbacks || !this.target || !this.isDragging || !this.callbacks.isControllerEnabled() || !this.callbacks.isControllerFocused()) return;
+
+            let dragActionEnabled = false;
+            for (const [actionName, action] of this.actions) {
+                if (action.dragEnabled && action.enabled) {
+                    dragActionEnabled = true;
+                    break;
+                }
+            }
+
+            if (!dragActionEnabled) {
+                this.stopDragging();
+                return;
+            }
 
             const deltaX = event.clientX - this.dragStartX;
             const deltaY = event.clientY - this.dragStartY;
@@ -96,15 +133,14 @@
 
             event.preventDefault();
         }
+
         handleMouseUp(event) {
             if (!this.callbacks || !this.target || !this.callbacks.isControllerEnabled() || !this.callbacks.isControllerFocused()) return;
 
             const button = event.button;
 
             if (button === 0 && this.isDragging) {
-                this.isDragging = false;
-                document.removeEventListener('mousemove', this.handleMouseMove);
-                document.removeEventListener('mouseup', this.handleMouseUp);
+                this.stopDragging();
             }
 
             this.mouseButtons.delete(button);
@@ -138,6 +174,12 @@
                     }
                 }
             }
+        }
+
+        stopDragging() {
+            this.isDragging = false;
+            document.removeEventListener('mousemove', this.handleMouseMove);
+            document.removeEventListener('mouseup', this.handleMouseUp);
         }
 
         clear() {

@@ -29,6 +29,26 @@
             }
         }
 
+        onActionEnabled(actionName) {
+            const action = this.actions.get(actionName);
+            if (action) {
+                action.enabled = true;
+            }
+        }
+
+        onActionDisabled(actionName) {
+            const action = this.actions.get(actionName);
+            if (action) {
+                action.enabled = false;
+
+                for (const key of action.keys) {
+                    if (this.keysPressed.has(key)) {
+                        this.callbacks.setActionActive(actionName, false);
+                    }
+                }
+            }
+        }
+
         attach(target) {
             this.target = target;
             window.addEventListener('keydown', this.handleKeyDown);
